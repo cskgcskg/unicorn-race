@@ -1,0 +1,1434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Doodle Unicorn Racers!</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Patrick+Hand:wght@400&family=Fredoka:wght@400;600;700&display=swap');
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: #f5e6d0;
+  font-family: 'Patrick Hand', cursive;
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+  cursor: default;
+  user-select: none;
+}
+
+#gameCanvas {
+  display: block;
+  position: absolute;
+  top: 0; left: 0;
+}
+
+/* ---- MENU SCREEN ---- */
+#menuScreen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #f5e6d0;
+  z-index: 100;
+  gap: 18px;
+}
+
+#menuScreen.hidden { display: none; }
+
+.menu-title {
+  font-family: 'Fredoka', sans-serif;
+  font-weight: 700;
+  font-size: clamp(36px, 7vw, 72px);
+  color: #2a1b5e;
+  text-shadow: 4px 4px 0 #ff6fb7, -2px -2px 0 #47d4ff;
+  letter-spacing: 2px;
+  text-align: center;
+  line-height: 1.1;
+  animation: titleBounce 2s ease-in-out infinite;
+}
+
+@keyframes titleBounce {
+  0%,100% { transform: translateY(0) rotate(-1deg); }
+  50% { transform: translateY(-8px) rotate(1deg); }
+}
+
+.menu-subtitle {
+  font-family: 'Patrick Hand', cursive;
+  font-size: clamp(16px, 3vw, 26px);
+  color: #7b5ea7;
+  margin-bottom: 10px;
+}
+
+.menu-unicorns {
+  font-size: clamp(40px, 8vw, 80px);
+  letter-spacing: 10px;
+  animation: unicornWiggle 1.5s ease-in-out infinite alternate;
+}
+
+@keyframes unicornWiggle {
+  0% { transform: rotate(-3deg); }
+  100% { transform: rotate(3deg); }
+}
+
+.menu-btn {
+  font-family: 'Fredoka', sans-serif;
+  font-weight: 600;
+  font-size: clamp(16px, 3vw, 22px);
+  padding: 12px 36px;
+  border: 4px solid #2a1b5e;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: all 0.15s;
+  min-width: 220px;
+  text-align: center;
+  position: relative;
+  box-shadow: 4px 4px 0 #2a1b5e;
+}
+
+.menu-btn:hover {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0 #2a1b5e;
+}
+
+.menu-btn:active {
+  transform: translate(4px, 4px);
+  box-shadow: 0 0 0 #2a1b5e;
+}
+
+.btn-solo { background: #ff6fb7; color: #fff; }
+.btn-free { background: #47d4ff; color: #fff; }
+.btn-challenge { background: #ffcf47; color: #2a1b5e; }
+
+.menu-controls {
+  margin-top: 8px;
+  font-size: clamp(12px, 2vw, 16px);
+  color: #9b8ab5;
+  text-align: center;
+  line-height: 1.6;
+}
+
+/* ---- HUD ---- */
+#hud {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  display: none;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 10px 16px;
+  z-index: 50;
+  pointer-events: none;
+}
+
+#hud.active { display: flex; }
+
+.hud-left, .hud-right, .hud-center { pointer-events: auto; }
+
+.hud-box {
+  background: rgba(255,255,255,0.85);
+  border: 3px solid #2a1b5e;
+  border-radius: 16px;
+  padding: 6px 14px;
+  font-family: 'Fredoka', sans-serif;
+  font-weight: 600;
+  font-size: 15px;
+  color: #2a1b5e;
+  box-shadow: 3px 3px 0 rgba(42,27,94,0.2);
+}
+
+.speed-btns {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.speed-btn {
+  font-family: 'Fredoka', sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+  padding: 5px 12px;
+  border: 3px solid #2a1b5e;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.1s;
+  box-shadow: 2px 2px 0 rgba(42,27,94,0.25);
+}
+
+.speed-btn:active { transform: translate(2px,2px); box-shadow: none; }
+
+.speed-btn.active { transform: scale(1.1); }
+
+.btn-trot { background: #7ed957; color: #fff; }
+.btn-trot.active { background: #5cb838; border-color: #3a7a1f; }
+.btn-canter { background: #ffcf47; color: #2a1b5e; }
+.btn-canter.active { background: #e6b530; border-color: #a07d10; }
+.btn-gallop { background: #ff6fb7; color: #fff; }
+.btn-gallop.active { background: #e0509a; border-color: #a02a6a; }
+
+.stamina-bar-bg {
+  width: 100%;
+  height: 12px;
+  background: #ddd;
+  border-radius: 6px;
+  border: 2px solid #2a1b5e;
+  margin-top: 6px;
+  overflow: hidden;
+}
+
+.stamina-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #7ed957, #47d4ff);
+  border-radius: 4px;
+  transition: width 0.2s;
+}
+
+.back-btn {
+  font-family: 'Fredoka', sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+  padding: 5px 14px;
+  border: 3px solid #2a1b5e;
+  border-radius: 20px;
+  background: #fff;
+  cursor: pointer;
+  box-shadow: 2px 2px 0 rgba(42,27,94,0.25);
+}
+
+/* ---- WIN/LOSE OVERLAY ---- */
+#resultOverlay {
+  position: absolute;
+  inset: 0;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(42,27,94,0.7);
+  z-index: 200;
+}
+
+#resultOverlay.active { display: flex; }
+
+.result-box {
+  background: #fff;
+  border: 5px solid #2a1b5e;
+  border-radius: 24px;
+  padding: 30px 50px;
+  text-align: center;
+  box-shadow: 6px 6px 0 rgba(42,27,94,0.3);
+}
+
+.result-title {
+  font-family: 'Fredoka', sans-serif;
+  font-weight: 700;
+  font-size: clamp(28px, 5vw, 48px);
+  color: #2a1b5e;
+}
+
+.result-sub {
+  font-family: 'Patrick Hand', cursive;
+  font-size: clamp(16px, 3vw, 24px);
+  color: #7b5ea7;
+  margin: 8px 0 20px;
+}
+
+/* ---- MOBILE CONTROLS ---- */
+#mobileControls {
+  position: absolute;
+  bottom: 12px;
+  left: 0; right: 0;
+  display: none;
+  justify-content: space-between;
+  padding: 0 12px;
+  z-index: 50;
+  pointer-events: none;
+}
+
+#mobileControls.active { display: flex; }
+
+.mobile-dpad {
+  pointer-events: auto;
+  display: grid;
+  grid-template-columns: 50px 50px 50px;
+  grid-template-rows: 50px 50px;
+  gap: 4px;
+}
+
+.dpad-btn {
+  width: 50px;
+  height: 50px;
+  border: 3px solid #2a1b5e;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.85);
+  font-size: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 2px 2px 0 rgba(42,27,94,0.2);
+  -webkit-touch-callout: none;
+}
+
+.dpad-btn:active { background: #ddd; transform: translate(2px,2px); box-shadow: none; }
+</style>
+</head>
+<body>
+
+<!-- MENU -->
+<div id="menuScreen">
+  <div class="menu-unicorns">🦄🏁🦄</div>
+  <div class="menu-title">Doodle Unicorn<br>Racers!</div>
+  <div class="menu-subtitle">gallop your way to glory!</div>
+  <button class="menu-btn btn-solo" onclick="startGame('solo')">Solo Race</button>
+  <button class="menu-btn btn-free" onclick="startGame('free')">Free Run</button>
+  <button class="menu-btn btn-challenge" onclick="startGame('challenge')">Challenge Mode</button>
+  <div class="menu-controls">
+    Arrow keys / WASD to move &nbsp;|&nbsp; 1 2 3 to change speed<br>
+    Tap controls on mobile
+  </div>
+</div>
+
+<!-- CANVAS -->
+<canvas id="gameCanvas"></canvas>
+
+<!-- HUD -->
+<div id="hud">
+  <div class="hud-left">
+    <div class="hud-box">
+      <div id="positionText">Position: 1st</div>
+      <div id="lapText"></div>
+      <div class="speed-btns">
+        <button class="speed-btn btn-trot active" id="btnTrot" onclick="setSpeed(0)">🐴 Trot</button>
+        <button class="speed-btn btn-canter" id="btnCanter" onclick="setSpeed(1)">🏇 Canter</button>
+        <button class="speed-btn btn-gallop" id="btnGallop" onclick="setSpeed(2)">💨 Gallop</button>
+      </div>
+      <div class="stamina-bar-bg"><div class="stamina-bar" id="staminaBar"></div></div>
+    </div>
+  </div>
+  <div class="hud-center">
+    <div class="hud-box" id="modeLabel" style="background:#ffcf47;">Solo Race</div>
+  </div>
+  <div class="hud-right">
+    <button class="back-btn" onclick="backToMenu()">← Menu</button>
+  </div>
+</div>
+
+<!-- MOBILE CONTROLS -->
+<div id="mobileControls">
+  <div class="mobile-dpad">
+    <div></div>
+    <button class="dpad-btn" id="mbUp">▲</button>
+    <div></div>
+    <button class="dpad-btn" id="mbLeft">◀</button>
+    <button class="dpad-btn" id="mbDown">▼</button>
+    <button class="dpad-btn" id="mbRight">▶</button>
+  </div>
+  <div style="pointer-events:auto; display:flex; flex-direction:column; gap:6px; align-self:flex-end;">
+    <button class="dpad-btn" style="width:auto;padding:0 12px;font-size:14px;font-family:'Fredoka',sans-serif;" onclick="setSpeed(0)">🐴</button>
+    <button class="dpad-btn" style="width:auto;padding:0 12px;font-size:14px;font-family:'Fredoka',sans-serif;" onclick="setSpeed(1)">🏇</button>
+    <button class="dpad-btn" style="width:auto;padding:0 12px;font-size:14px;font-family:'Fredoka',sans-serif;" onclick="setSpeed(2)">💨</button>
+  </div>
+</div>
+
+<!-- RESULT OVERLAY -->
+<div id="resultOverlay">
+  <div class="result-box">
+    <div class="result-title" id="resultTitle">🏆 You Won!</div>
+    <div class="result-sub" id="resultSub">1st place — amazing!</div>
+    <button class="menu-btn btn-solo" onclick="backToMenu()" style="margin-top:10px;">Back to Menu</button>
+  </div>
+</div>
+
+<script>
+// ==================== AUDIO ====================
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx = null;
+
+function initAudio() {
+  if (!audioCtx) audioCtx = new AudioCtx();
+}
+
+function playTone(freq, dur, type='square', vol=0.08) {
+  if (!audioCtx) return;
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  o.type = type;
+  o.frequency.value = freq;
+  g.gain.value = vol;
+  g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+  o.connect(g);
+  g.connect(audioCtx.destination);
+  o.start();
+  o.stop(audioCtx.currentTime + dur);
+}
+
+function playHoof() {
+  playTone(120 + Math.random()*60, 0.06, 'square', 0.06);
+}
+
+function playNeigh() {
+  if (!audioCtx) return;
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  o.type = 'sawtooth';
+  o.frequency.value = 600;
+  o.frequency.linearRampToValueAtTime(900, audioCtx.currentTime + 0.15);
+  o.frequency.linearRampToValueAtTime(500, audioCtx.currentTime + 0.3);
+  g.gain.value = 0.06;
+  g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.35);
+  o.connect(g); g.connect(audioCtx.destination);
+  o.start(); o.stop(audioCtx.currentTime + 0.35);
+}
+
+function playCheer() {
+  for (let i = 0; i < 5; i++) {
+    setTimeout(() => playTone(400 + i*100, 0.15, 'triangle', 0.05), i*80);
+  }
+}
+
+function playFinish() {
+  const notes = [523, 659, 784, 1047];
+  notes.forEach((n,i) => setTimeout(() => playTone(n, 0.25, 'square', 0.07), i*120));
+}
+
+// ==================== CANVAS SETUP ====================
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+function resize() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resize);
+resize();
+
+// ==================== GAME STATE ====================
+let gameMode = null; // 'solo', 'free', 'challenge'
+let gameRunning = false;
+let raceFinished = false;
+
+// Track
+const TRACK_COLORS = ['#7ed957', '#5cb838'];
+const ROAD_COLOR = '#e8d5b0';
+const ROAD_BORDER = '#2a1b5e';
+const FINISH_COLOR = '#2a1b5e';
+
+// Speed modes
+const SPEED_MODES = [
+  { name: 'Trot',   maxSpeed: 2.2, accel: 0.08, turnSpeed: 0.045, staminaDrain: 0.05, staminaRegen: 0.4 },
+  { name: 'Canter', maxSpeed: 3.8, accel: 0.12, turnSpeed: 0.032, staminaDrain: 0.2,  staminaRegen: 0.15 },
+  { name: 'Gallop', maxSpeed: 5.5, accel: 0.16, turnSpeed: 0.02,  staminaDrain: 0.5,  staminaRegen: 0.0 }
+];
+
+let currentSpeedMode = 0;
+let stamina = 100;
+
+// Racer colors
+const UNICORN_COLORS = [
+  { body: '#ff6fb7', horn: '#ffcf47', mane: '#a855f7', rider: '#47d4ff' },
+  { body: '#47d4ff', horn: '#ff6fb7', mane: '#7ed957', rider: '#ffcf47' },
+  { body: '#ffcf47', horn: '#47d4ff', mane: '#ff6fb7', rider: '#7ed957' },
+  { body: '#a855f7', horn: '#7ed957', mane: '#ffcf47', rider: '#ff6fb7' },
+];
+
+// ==================== TRACK GENERATION ====================
+let trackPoints = [];
+let trackSegmentLengths = [];
+let totalTrackLength = 0;
+let obstacles = [];
+
+function generateTrack(type) {
+  trackPoints = [];
+  obstacles = [];
+  const cx = canvas.width / 2;
+  const cy = canvas.height / 2;
+
+  if (type === 'challenge') {
+    // Wiggly complex track
+    const numPts = 24;
+    for (let i = 0; i < numPts; i++) {
+      const angle = (i / numPts) * Math.PI * 2;
+      const r = 180 + Math.sin(angle * 3) * 70 + Math.cos(angle * 5) * 40;
+      const scale = Math.min(canvas.width, canvas.height) / 500;
+      trackPoints.push({
+        x: cx + Math.cos(angle) * r * scale,
+        y: cy + Math.sin(angle) * r * scale
+      });
+    }
+    // More obstacles
+    for (let i = 0; i < 8; i++) {
+      const idx = Math.floor(Math.random() * trackPoints.length);
+      const p = trackPoints[idx];
+      obstacles.push({ x: p.x + (Math.random()-0.5)*40, y: p.y + (Math.random()-0.5)*40, type: Math.random() > 0.5 ? 'rock' : 'puddle' });
+    }
+  } else {
+    // Oval-ish track
+    const numPts = 20;
+    for (let i = 0; i < numPts; i++) {
+      const angle = (i / numPts) * Math.PI * 2;
+      const rx = Math.min(canvas.width * 0.38, 350);
+      const ry = Math.min(canvas.height * 0.34, 250);
+      const wobble = Math.sin(angle * 3) * 25;
+      trackPoints.push({
+        x: cx + Math.cos(angle) * (rx + wobble),
+        y: cy + Math.sin(angle) * (ry + wobble * 0.7)
+      });
+    }
+    if (type === 'solo') {
+      for (let i = 0; i < 4; i++) {
+        const idx = Math.floor(Math.random() * trackPoints.length);
+        const p = trackPoints[idx];
+        obstacles.push({ x: p.x + (Math.random()-0.5)*30, y: p.y + (Math.random()-0.5)*30, type: Math.random() > 0.5 ? 'rock' : 'puddle' });
+      }
+    }
+  }
+
+  // Calculate segment lengths
+  trackSegmentLengths = [];
+  totalTrackLength = 0;
+  for (let i = 0; i < trackPoints.length; i++) {
+    const next = trackPoints[(i + 1) % trackPoints.length];
+    const dx = next.x - trackPoints[i].x;
+    const dy = next.y - trackPoints[i].y;
+    const len = Math.sqrt(dx * dx + dy * dy);
+    trackSegmentLengths.push(len);
+    totalTrackLength += len;
+  }
+}
+
+function getTrackPosition(progress) {
+  // progress is 0..1 along the track
+  let dist = (progress % 1) * totalTrackLength;
+  for (let i = 0; i < trackPoints.length; i++) {
+    if (dist <= trackSegmentLengths[i]) {
+      const t = dist / trackSegmentLengths[i];
+      const p1 = trackPoints[i];
+      const p2 = trackPoints[(i + 1) % trackPoints.length];
+      return {
+        x: p1.x + (p2.x - p1.x) * t,
+        y: p1.y + (p2.y - p1.y) * t,
+        angle: Math.atan2(p2.y - p1.y, p2.x - p1.x)
+      };
+    }
+    dist -= trackSegmentLengths[i];
+  }
+  return { x: trackPoints[0].x, y: trackPoints[0].y, angle: 0 };
+}
+
+// ==================== RACERS ====================
+let racers = [];
+const LAPS_TO_WIN = 2;
+
+class Racer {
+  constructor(colorIdx, isPlayer, startProgress) {
+    this.colors = UNICORN_COLORS[colorIdx];
+    this.isPlayer = isPlayer;
+    this.progress = startProgress;
+    this.lap = 0;
+    this.speed = 0;
+    this.speedMode = 0;
+    this.stamina = 100;
+    this.finished = false;
+    this.finishOrder = -1;
+    this.wobble = 0;
+    this.hoofTimer = 0;
+
+    // AI
+    this.aiTargetSpeed = 1;
+    this.aiSpeedChangeTimer = 0;
+
+    const pos = getTrackPosition(this.progress);
+    this.x = pos.x;
+    this.y = pos.y;
+    this.angle = pos.angle;
+  }
+}
+
+let finishCount = 0;
+
+function initRacers(count) {
+  racers = [];
+  finishCount = 0;
+  for (let i = 0; i < count; i++) {
+    const r = new Racer(i % UNICORN_COLORS.length, i === 0, i * 0.02);
+    racers.push(r);
+  }
+}
+
+// ==================== INPUT ====================
+const keys = {};
+window.addEventListener('keydown', e => {
+  initAudio();
+  keys[e.key.toLowerCase()] = true;
+  if (e.key === '1') setSpeed(0);
+  if (e.key === '2') setSpeed(1);
+  if (e.key === '3') setSpeed(2);
+});
+window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
+
+// Mobile
+const mobileKeys = { up: false, down: false, left: false, right: false };
+
+function setupMobileBtn(id, key) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const start = () => { initAudio(); mobileKeys[key] = true; };
+  const end = () => { mobileKeys[key] = false; };
+  el.addEventListener('touchstart', e => { e.preventDefault(); start(); }, { passive: false });
+  el.addEventListener('touchend', e => { e.preventDefault(); end(); }, { passive: false });
+  el.addEventListener('mousedown', start);
+  el.addEventListener('mouseup', end);
+  el.addEventListener('mouseleave', end);
+}
+
+setupMobileBtn('mbUp', 'up');
+setupMobileBtn('mbDown', 'down');
+setupMobileBtn('mbLeft', 'left');
+setupMobileBtn('mbRight', 'right');
+
+function isUp() { return keys['arrowup'] || keys['w'] || mobileKeys.up; }
+function isDown() { return keys['arrowdown'] || keys['s'] || mobileKeys.down; }
+function isLeft() { return keys['arrowleft'] || keys['a'] || mobileKeys.left; }
+function isRight() { return keys['arrowright'] || keys['d'] || mobileKeys.right; }
+
+function setSpeed(mode) {
+  initAudio();
+  currentSpeedMode = mode;
+  document.getElementById('btnTrot').classList.toggle('active', mode === 0);
+  document.getElementById('btnCanter').classList.toggle('active', mode === 1);
+  document.getElementById('btnGallop').classList.toggle('active', mode === 2);
+  playTone(300 + mode * 200, 0.1, 'triangle', 0.06);
+}
+
+// ==================== DRAWING HELPERS ====================
+function doodleLine(x1, y1, x2, y2, color, width) {
+  ctx.strokeStyle = color;
+  ctx.lineWidth = width;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  // Slight wobble for hand-drawn feel
+  const mx = (x1+x2)/2 + (Math.random()-0.5)*3;
+  const my = (y1+y2)/2 + (Math.random()-0.5)*3;
+  ctx.quadraticCurveTo(mx, my, x2, y2);
+  ctx.stroke();
+}
+
+function doodleCircle(x, y, r, fillColor, strokeColor, lineW) {
+  ctx.fillStyle = fillColor;
+  ctx.strokeStyle = strokeColor;
+  ctx.lineWidth = lineW;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  // Slightly wobbly circle
+  for (let a = 0; a <= Math.PI * 2 + 0.1; a += 0.3) {
+    const wr = r + Math.sin(a * 5) * (r * 0.06);
+    const px = x + Math.cos(a) * wr;
+    const py = y + Math.sin(a) * wr;
+    if (a === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+}
+
+function doodleRect(x, y, w, h, fillColor, strokeColor, lineW) {
+  ctx.fillStyle = fillColor;
+  ctx.strokeStyle = strokeColor;
+  ctx.lineWidth = lineW;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  const wo = 2;
+  ctx.moveTo(x + (Math.random()-0.5)*wo, y + (Math.random()-0.5)*wo);
+  ctx.lineTo(x + w + (Math.random()-0.5)*wo, y + (Math.random()-0.5)*wo);
+  ctx.lineTo(x + w + (Math.random()-0.5)*wo, y + h + (Math.random()-0.5)*wo);
+  ctx.lineTo(x + (Math.random()-0.5)*wo, y + h + (Math.random()-0.5)*wo);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+}
+
+// ==================== DRAW UNICORN + RIDER ====================
+function drawUnicorn(x, y, angle, colors, speedMode, wobblePhase, scale=1) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(angle);
+  ctx.scale(scale, scale);
+
+  const bob = Math.sin(wobblePhase) * (2 + speedMode * 2);
+  const legPhase = wobblePhase * (1 + speedMode * 0.5);
+
+  // BODY - chunky doodle oval
+  ctx.fillStyle = colors.body;
+  ctx.strokeStyle = '#2a1b5e';
+  ctx.lineWidth = 3.5;
+  ctx.beginPath();
+  ctx.ellipse(0, bob, 22, 14, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  // LEGS (4 stick legs with hooves)
+  const legPositions = [[-12, 10], [-6, 11], [6, 11], [12, 10]];
+  legPositions.forEach((lp, i) => {
+    const legSwing = Math.sin(legPhase + i * 1.5) * (4 + speedMode * 3);
+    const lx = lp[0];
+    const ly = lp[1] + bob;
+    ctx.strokeStyle = '#2a1b5e';
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(lx, ly);
+    ctx.lineTo(lx + legSwing * 0.3, ly + 14);
+    ctx.stroke();
+    // Hoof
+    ctx.fillStyle = '#2a1b5e';
+    ctx.beginPath();
+    ctx.arc(lx + legSwing * 0.3, ly + 15, 3, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  // NECK + HEAD
+  const headX = 24;
+  const headY = -8 + bob;
+  ctx.strokeStyle = '#2a1b5e';
+  ctx.lineWidth = 3.5;
+  ctx.beginPath();
+  ctx.moveTo(14, -4 + bob);
+  ctx.quadraticCurveTo(20, -12 + bob, headX, headY);
+  ctx.stroke();
+
+  // Head circle
+  doodleCircle(headX, headY, 9, colors.body, '#2a1b5e', 3);
+
+  // Eye
+  ctx.fillStyle = '#2a1b5e';
+  ctx.beginPath();
+  ctx.arc(headX + 4, headY - 2, 2.5, 0, Math.PI * 2);
+  ctx.fill();
+  // Eye shine
+  ctx.fillStyle = '#fff';
+  ctx.beginPath();
+  ctx.arc(headX + 5, headY - 3, 1, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Mouth (smile)
+  ctx.strokeStyle = '#2a1b5e';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(headX + 4, headY + 2, 4, 0.1, Math.PI * 0.8);
+  ctx.stroke();
+
+  // HORN (it's a unicorn!)
+  ctx.strokeStyle = colors.horn;
+  ctx.lineWidth = 3;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(headX + 2, headY - 8);
+  ctx.lineTo(headX + 5, headY - 20);
+  ctx.stroke();
+  // Horn stripes
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 1.5;
+  for (let s = 0; s < 3; s++) {
+    const sy = headY - 10 - s * 3.5;
+    ctx.beginPath();
+    ctx.moveTo(headX + 2.5 + s*0.3, sy);
+    ctx.lineTo(headX + 4.5 - s*0.3, sy - 1);
+    ctx.stroke();
+  }
+
+  // MANE (wavy lines along neck)
+  ctx.strokeStyle = colors.mane;
+  ctx.lineWidth = 3;
+  ctx.lineCap = 'round';
+  for (let m = 0; m < 4; m++) {
+    const mt = m / 3;
+    const mx = 14 + mt * 10;
+    const my = -4 + bob - mt * 6;
+    const mwave = Math.sin(wobblePhase * 2 + m) * 4;
+    ctx.beginPath();
+    ctx.moveTo(mx, my);
+    ctx.quadraticCurveTo(mx - 4, my - 8 + mwave, mx - 2, my - 14 + mwave);
+    ctx.stroke();
+  }
+
+  // TAIL (wavy)
+  ctx.strokeStyle = colors.mane;
+  ctx.lineWidth = 3.5;
+  ctx.lineCap = 'round';
+  const tailWave = Math.sin(wobblePhase * 1.5) * 6;
+  ctx.beginPath();
+  ctx.moveTo(-20, bob);
+  ctx.quadraticCurveTo(-28, -5 + bob + tailWave, -32, -12 + bob + tailWave * 0.5);
+  ctx.stroke();
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.moveTo(-20, bob + 2);
+  ctx.quadraticCurveTo(-26, 2 + bob + tailWave * 0.7, -30, -4 + bob + tailWave * 0.3);
+  ctx.stroke();
+
+  // RIDER
+  const riderX = -2;
+  const riderY = -14 + bob;
+
+  // Rider body (torso)
+  ctx.fillStyle = colors.rider;
+  ctx.strokeStyle = '#2a1b5e';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.ellipse(riderX, riderY, 7, 9, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  // Rider head
+  doodleCircle(riderX, riderY - 13, 7, '#ffd9b3', '#2a1b5e', 2.5);
+
+  // Rider eyes
+  ctx.fillStyle = '#2a1b5e';
+  ctx.beginPath();
+  ctx.arc(riderX - 2, riderY - 14, 1.5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(riderX + 3, riderY - 14, 1.5, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Rider smile
+  ctx.strokeStyle = '#2a1b5e';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(riderX + 0.5, riderY - 11, 3, 0.2, Math.PI * 0.8);
+  ctx.stroke();
+
+  // Rider arms (holding reins)
+  ctx.strokeStyle = '#2a1b5e';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.moveTo(riderX + 5, riderY - 4);
+  ctx.lineTo(riderX + 14, riderY - 2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(riderX - 5, riderY - 4);
+  ctx.lineTo(riderX + 14, riderY - 1);
+  ctx.stroke();
+
+  // Reins line
+  ctx.strokeStyle = '#8b6914';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(riderX + 14, riderY - 1.5);
+  ctx.lineTo(headX - 4, headY + 2);
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+// ==================== DRAW TRACK ====================
+function drawTrack() {
+  // Green background
+  ctx.fillStyle = '#b8e686';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Doodle grass texture
+  ctx.strokeStyle = '#9fd46a';
+  ctx.lineWidth = 1;
+  for (let i = 0; i < 120; i++) {
+    const gx = Math.random() * canvas.width;
+    const gy = Math.random() * canvas.height;
+    ctx.beginPath();
+    ctx.moveTo(gx, gy);
+    ctx.lineTo(gx + (Math.random()-0.5)*6, gy - 4 - Math.random()*6);
+    ctx.stroke();
+  }
+
+  // Track path (thick road)
+  const roadWidth = 55;
+
+  // Road fill
+  ctx.strokeStyle = ROAD_COLOR;
+  ctx.lineWidth = roadWidth;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  ctx.moveTo(trackPoints[0].x, trackPoints[0].y);
+  for (let i = 1; i <= trackPoints.length; i++) {
+    const p = trackPoints[i % trackPoints.length];
+    ctx.lineTo(p.x, p.y);
+  }
+  ctx.closePath();
+  ctx.stroke();
+
+  // Road border (outer)
+  ctx.strokeStyle = ROAD_BORDER;
+  ctx.lineWidth = roadWidth + 8;
+  ctx.globalAlpha = 0.25;
+  ctx.beginPath();
+  ctx.moveTo(trackPoints[0].x, trackPoints[0].y);
+  for (let i = 1; i <= trackPoints.length; i++) {
+    const p = trackPoints[i % trackPoints.length];
+    ctx.lineTo(p.x, p.y);
+  }
+  ctx.closePath();
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+
+  // Dashed center line
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([10, 10]);
+  ctx.beginPath();
+  ctx.moveTo(trackPoints[0].x, trackPoints[0].y);
+  for (let i = 1; i <= trackPoints.length; i++) {
+    const p = trackPoints[i % trackPoints.length];
+    ctx.lineTo(p.x, p.y);
+  }
+  ctx.closePath();
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Finish line
+  const fp = trackPoints[0];
+  const fp2 = trackPoints[1];
+  const fAngle = Math.atan2(fp2.y - fp.y, fp2.x - fp.x);
+  const perpAngle = fAngle + Math.PI / 2;
+
+  ctx.save();
+  ctx.translate(fp.x, fp.y);
+  ctx.rotate(perpAngle);
+
+  // Checkered pattern
+  const checkerSize = 8;
+  const rows = 4;
+  const cols = Math.ceil(roadWidth / checkerSize) + 1;
+  for (let r = 0; r < rows; r++) {
+    for (let c = -cols/2; c < cols/2; c++) {
+      ctx.fillStyle = (r + c) % 2 === 0 ? '#2a1b5e' : '#fff';
+      ctx.fillRect(c * checkerSize, r * checkerSize - rows * checkerSize / 2, checkerSize, checkerSize);
+    }
+  }
+
+  // "FINISH" text
+  ctx.fillStyle = '#ff6fb7';
+  ctx.font = 'bold 10px Fredoka, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('FINISH', 0, 3);
+
+  ctx.restore();
+
+  // Obstacles
+  obstacles.forEach(ob => {
+    if (ob.type === 'rock') {
+      doodleCircle(ob.x, ob.y, 10, '#999', '#2a1b5e', 3);
+      doodleCircle(ob.x - 3, ob.y - 2, 3, '#bbb', '#999', 1);
+    } else {
+      // Puddle
+      ctx.fillStyle = 'rgba(71, 212, 255, 0.6)';
+      ctx.strokeStyle = '#2a9dbf';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.ellipse(ob.x, ob.y, 14, 8, 0.3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    }
+  });
+
+  // Decorative flowers/trees around edges
+  const decoSeed = 42;
+  for (let i = 0; i < 20; i++) {
+    const dx = seededRandom(decoSeed + i) * canvas.width;
+    const dy = seededRandom(decoSeed + i + 100) * canvas.height;
+    // Check not too close to track
+    let tooClose = false;
+    for (const tp of trackPoints) {
+      if (Math.hypot(tp.x - dx, tp.y - dy) < 60) { tooClose = true; break; }
+    }
+    if (tooClose) continue;
+    if (i % 3 === 0) {
+      drawDoodleFlower(dx, dy);
+    } else if (i % 3 === 1) {
+      drawDoodleTree(dx, dy);
+    } else {
+      drawDoodleBush(dx, dy);
+    }
+  }
+}
+
+function seededRandom(seed) {
+  const x = Math.sin(seed * 127.1) * 43758.5453;
+  return x - Math.floor(x);
+}
+
+function drawDoodleFlower(x, y) {
+  const petalColors = ['#ff6fb7', '#ffcf47', '#a855f7', '#47d4ff'];
+  const c = petalColors[Math.floor(seededRandom(x * 3.7 + y) * petalColors.length)];
+  // Stem
+  ctx.strokeStyle = '#5cb838';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(x, y + 12);
+  ctx.stroke();
+  // Petals
+  for (let p = 0; p < 5; p++) {
+    const a = (p / 5) * Math.PI * 2;
+    ctx.fillStyle = c;
+    ctx.beginPath();
+    ctx.arc(x + Math.cos(a) * 5, y + Math.sin(a) * 5, 4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // Center
+  ctx.fillStyle = '#ffcf47';
+  ctx.beginPath();
+  ctx.arc(x, y, 3, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawDoodleTree(x, y) {
+  // Trunk
+  ctx.fillStyle = '#8b6914';
+  ctx.strokeStyle = '#2a1b5e';
+  ctx.lineWidth = 2;
+  ctx.fillRect(x - 4, y, 8, 16);
+  ctx.strokeRect(x - 4, y, 8, 16);
+  // Canopy
+  doodleCircle(x, y - 4, 14, '#5cb838', '#2a1b5e', 2.5);
+  doodleCircle(x - 6, y + 2, 10, '#7ed957', '#2a1b5e', 2);
+  doodleCircle(x + 7, y + 1, 10, '#7ed957', '#2a1b5e', 2);
+}
+
+function drawDoodleBush(x, y) {
+  doodleCircle(x, y, 10, '#7ed957', '#5cb838', 2);
+  doodleCircle(x + 6, y + 2, 8, '#5cb838', '#3a7a1f', 2);
+}
+
+// ==================== GAME LOGIC ====================
+function updatePlayer(racer, dt) {
+  const mode = SPEED_MODES[currentSpeedMode];
+  racer.speedMode = currentSpeedMode;
+
+  // Stamina
+  if (currentSpeedMode > 0 && racer.speed > 0.5) {
+    stamina -= mode.staminaDrain * dt * 60;
+    if (stamina <= 0) {
+      stamina = 0;
+      currentSpeedMode = 0;
+      setSpeed(0);
+    }
+  } else {
+    stamina = Math.min(100, stamina + SPEED_MODES[0].staminaRegen * dt * 60);
+  }
+  racer.stamina = stamina;
+
+  const activeMode = SPEED_MODES[currentSpeedMode];
+
+  // Turning
+  if (isLeft()) racer.angle -= activeMode.turnSpeed * dt * 60;
+  if (isRight()) racer.angle += activeMode.turnSpeed * dt * 60;
+
+  // Acceleration
+  if (isUp()) {
+    racer.speed = Math.min(racer.speed + activeMode.accel * dt * 60, activeMode.maxSpeed);
+  } else if (isDown()) {
+    racer.speed = Math.max(racer.speed - 0.15 * dt * 60, -1);
+  } else {
+    racer.speed *= (1 - 0.03 * dt * 60);
+    if (Math.abs(racer.speed) < 0.05) racer.speed = 0;
+  }
+
+  // Move
+  racer.x += Math.cos(racer.angle) * racer.speed * dt * 60;
+  racer.y += Math.sin(racer.angle) * racer.speed * dt * 60;
+
+  // Keep on screen
+  racer.x = Math.max(10, Math.min(canvas.width - 10, racer.x));
+  racer.y = Math.max(10, Math.min(canvas.height - 10, racer.y));
+
+  // Obstacle collision
+  obstacles.forEach(ob => {
+    const dist = Math.hypot(racer.x - ob.x, racer.y - ob.y);
+    if (dist < 18) {
+      racer.speed *= 0.3;
+      // Push away
+      const pushAngle = Math.atan2(racer.y - ob.y, racer.x - ob.x);
+      racer.x += Math.cos(pushAngle) * 3;
+      racer.y += Math.sin(pushAngle) * 3;
+    }
+  });
+
+  // Track progress (find closest point on track)
+  updateTrackProgress(racer);
+
+  // Wobble animation
+  racer.wobble += dt * (3 + racer.speed * 2);
+
+  // Hoof sounds
+  if (racer.speed > 0.5) {
+    racer.hoofTimer -= dt;
+    if (racer.hoofTimer <= 0) {
+      playHoof();
+      racer.hoofTimer = 0.3 / (1 + currentSpeedMode * 0.5);
+    }
+  }
+}
+
+function updateAI(racer, dt) {
+  if (racer.finished) return;
+
+  // AI changes speed randomly
+  racer.aiSpeedChangeTimer -= dt;
+  if (racer.aiSpeedChangeTimer <= 0) {
+    racer.aiSpeedChangeTimer = 1 + Math.random() * 3;
+    racer.speedMode = Math.floor(Math.random() * 3);
+    // Challenge mode AIs are faster
+    if (gameMode === 'challenge') racer.speedMode = Math.min(2, racer.speedMode + 1);
+  }
+
+  const mode = SPEED_MODES[racer.speedMode];
+
+  // Stamina
+  if (racer.speedMode > 0) {
+    racer.stamina -= mode.staminaDrain * dt * 60 * 0.6; // AI uses less stamina
+    if (racer.stamina <= 0) {
+      racer.stamina = 0;
+      racer.speedMode = 0;
+    }
+  } else {
+    racer.stamina = Math.min(100, racer.stamina + SPEED_MODES[0].staminaRegen * dt * 60);
+  }
+
+  // Follow track
+  const targetProg = racer.progress + 0.03;
+  const target = getTrackPosition(targetProg);
+  const targetAngle = Math.atan2(target.y - racer.y, target.x - racer.x);
+
+  // Turn toward target
+  let angleDiff = targetAngle - racer.angle;
+  while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+  while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+  racer.angle += angleDiff * mode.turnSpeed * dt * 60 * 1.5;
+
+  // Speed
+  const targetSpeed = mode.maxSpeed * (0.7 + Math.random() * 0.2);
+  racer.speed += (targetSpeed - racer.speed) * 0.05 * dt * 60;
+
+  // Move
+  racer.x += Math.cos(racer.angle) * racer.speed * dt * 60;
+  racer.y += Math.sin(racer.angle) * racer.speed * dt * 60;
+
+  // Obstacle avoidance (simple)
+  obstacles.forEach(ob => {
+    const dist = Math.hypot(racer.x - ob.x, racer.y - ob.y);
+    if (dist < 30) {
+      const pushAngle = Math.atan2(racer.y - ob.y, racer.x - ob.x);
+      racer.x += Math.cos(pushAngle) * 1.5;
+      racer.y += Math.sin(pushAngle) * 1.5;
+    }
+  });
+
+  racer.x = Math.max(10, Math.min(canvas.width - 10, racer.x));
+  racer.y = Math.max(10, Math.min(canvas.height - 10, racer.y));
+
+  updateTrackProgress(racer);
+  racer.wobble += dt * (3 + racer.speed * 2);
+}
+
+function updateTrackProgress(racer) {
+  // Find closest point on track and update progress
+  let bestDist = Infinity;
+  let bestProgress = racer.progress;
+
+  const searchRange = 0.1;
+  const steps = 30;
+  for (let i = 0; i < steps; i++) {
+    const p = racer.progress - searchRange / 2 + (i / steps) * searchRange;
+    const pos = getTrackPosition(p);
+    const dist = Math.hypot(racer.x - pos.x, racer.y - pos.y);
+    if (dist < bestDist) {
+      bestDist = dist;
+      bestProgress = p;
+    }
+  }
+
+  const oldProgress = racer.progress;
+  racer.progress = bestProgress;
+
+  // Lap detection
+  if (gameMode !== 'free') {
+    if (oldProgress > 0.9 && racer.progress < 0.1 && racer.progress >= 0) {
+      racer.lap++;
+      if (racer.lap >= LAPS_TO_WIN && !racer.finished) {
+        racer.finished = true;
+        finishCount++;
+        racer.finishOrder = finishCount;
+        if (racer.isPlayer) {
+          playFinish();
+        }
+      }
+      if (racer.isPlayer) {
+        playNeigh();
+      }
+    }
+    if (oldProgress < 0.1 && racer.progress > 0.9) {
+      racer.lap = Math.max(0, racer.lap - 1);
+    }
+  }
+}
+
+function getRacePosition(racer) {
+  const score = racer.lap + racer.progress;
+  let pos = 1;
+  racers.forEach(r => {
+    if (r !== racer && (r.lap + r.progress) > score) pos++;
+  });
+  return pos;
+}
+
+function ordinal(n) {
+  const s = ['th','st','nd','rd'];
+  const v = n % 100;
+  return n + (s[(v-20)%10]||s[v]||s[0]);
+}
+
+// ==================== MAIN LOOP ====================
+let lastTime = 0;
+let countdownTimer = 3;
+let countdownActive = false;
+
+function gameLoop(time) {
+  if (!gameRunning) return;
+  const dt = Math.min((time - lastTime) / 1000, 0.05);
+  lastTime = time;
+
+  resize();
+
+  // Countdown
+  if (countdownActive) {
+    countdownTimer -= dt;
+    drawTrack();
+    racers.forEach(r => drawUnicorn(r.x, r.y, r.angle, r.colors, r.speedMode, r.wobble));
+
+    ctx.fillStyle = 'rgba(42,27,94,0.5)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#fff';
+    ctx.font = `bold ${Math.min(120, canvas.width/4)}px Fredoka, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const countNum = Math.ceil(countdownTimer);
+    if (countNum > 0) {
+      ctx.fillText(countNum, canvas.width/2, canvas.height/2);
+    } else {
+      ctx.fillStyle = '#7ed957';
+      ctx.fillText('GO!', canvas.width/2, canvas.height/2);
+    }
+
+    if (countdownTimer <= -0.5) {
+      countdownActive = false;
+      playNeigh();
+    }
+    requestAnimationFrame(gameLoop);
+    return;
+  }
+
+  // Update
+  racers.forEach(r => {
+    if (r.isPlayer) {
+      if (!r.finished) updatePlayer(r, dt);
+    } else {
+      updateAI(r, dt);
+    }
+  });
+
+  // Check race end
+  if (gameMode !== 'free' && !raceFinished) {
+    const player = racers[0];
+    if (player.finished || finishCount >= racers.length) {
+      raceFinished = true;
+      showResult(player.finishOrder);
+    }
+    // All AI finished
+    const allAIDone = racers.filter(r => !r.isPlayer).every(r => r.finished);
+    if (allAIDone && !player.finished) {
+      // Give player a moment, then end
+      setTimeout(() => {
+        if (!raceFinished) {
+          raceFinished = true;
+          showResult(player.finishOrder > 0 ? player.finishOrder : racers.length);
+        }
+      }, 3000);
+    }
+  }
+
+  // Draw
+  drawTrack();
+
+  // Sort racers by progress for depth (draw furthest back first)
+  const sorted = [...racers].sort((a,b) => (a.lap + a.progress) - (b.lap + b.progress));
+  sorted.forEach(r => {
+    const scale = r.isPlayer ? 1.1 : 0.95;
+    drawUnicorn(r.x, r.y, r.angle, r.colors, r.speedMode, r.wobble, scale);
+
+    // Player indicator
+    if (r.isPlayer) {
+      ctx.fillStyle = '#ffcf47';
+      ctx.font = 'bold 12px Fredoka, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('▼ YOU', r.x, r.y - 45);
+    }
+  });
+
+  // Update HUD
+  const player = racers[0];
+  const pos = getRacePosition(player);
+  document.getElementById('positionText').textContent = `Position: ${ordinal(pos)}`;
+  if (gameMode !== 'free') {
+    document.getElementById('lapText').textContent = `Lap ${Math.min(player.lap + 1, LAPS_TO_WIN)} / ${LAPS_TO_WIN}`;
+  } else {
+    document.getElementById('lapText').textContent = 'Free Run!';
+  }
+  document.getElementById('staminaBar').style.width = stamina + '%';
+
+  // Minimap
+  drawMinimap();
+
+  requestAnimationFrame(gameLoop);
+}
+
+function drawMinimap() {
+  const mmSize = 80;
+  const mmX = canvas.width - mmSize - 14;
+  const mmY = canvas.height - mmSize - 14;
+
+  ctx.fillStyle = 'rgba(255,255,255,0.7)';
+  ctx.strokeStyle = '#2a1b5e';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.roundRect(mmX - 4, mmY - 4, mmSize + 8, mmSize + 8, 8);
+  ctx.fill();
+  ctx.stroke();
+
+  // Scale track to minimap
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  trackPoints.forEach(p => {
+    minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
+    minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y);
+  });
+  const scaleX = (mmSize - 10) / (maxX - minX || 1);
+  const scaleY = (mmSize - 10) / (maxY - minY || 1);
+  const scale = Math.min(scaleX, scaleY);
+
+  const toMM = (px, py) => ({
+    x: mmX + 5 + (px - minX) * scale,
+    y: mmY + 5 + (py - minY) * scale
+  });
+
+  // Draw track on minimap
+  ctx.strokeStyle = '#ccc';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  const fp = toMM(trackPoints[0].x, trackPoints[0].y);
+  ctx.moveTo(fp.x, fp.y);
+  trackPoints.forEach(p => {
+    const mp = toMM(p.x, p.y);
+    ctx.lineTo(mp.x, mp.y);
+  });
+  ctx.closePath();
+  ctx.stroke();
+
+  // Racers on minimap
+  racers.forEach(r => {
+    const mp = toMM(r.x, r.y);
+    ctx.fillStyle = r.colors.body;
+    ctx.strokeStyle = r.isPlayer ? '#2a1b5e' : 'transparent';
+    ctx.lineWidth = r.isPlayer ? 2 : 0;
+    ctx.beginPath();
+    ctx.arc(mp.x, mp.y, r.isPlayer ? 4 : 3, 0, Math.PI * 2);
+    ctx.fill();
+    if (r.isPlayer) ctx.stroke();
+  });
+}
+
+// ==================== GAME MODES ====================
+function startGame(mode) {
+  initAudio();
+  gameMode = mode;
+  gameRunning = true;
+  raceFinished = false;
+  currentSpeedMode = 0;
+  stamina = 100;
+  setSpeed(0);
+
+  generateTrack(mode);
+
+  const numRacers = mode === 'free' ? 1 : mode === 'challenge' ? 5 : 4;
+  initRacers(numRacers);
+
+  // Position racers at start
+  racers.forEach((r, i) => {
+    const pos = getTrackPosition(0.98 - i * 0.015);
+    r.x = pos.x + (Math.random()-0.5) * 20;
+    r.y = pos.y + (Math.random()-0.5) * 20;
+    r.angle = pos.angle;
+    r.progress = 0.98 - i * 0.015;
+  });
+
+  document.getElementById('menuScreen').classList.add('hidden');
+  document.getElementById('hud').classList.add('active');
+  document.getElementById('resultOverlay').classList.remove('active');
+
+  const labels = { solo: 'Solo Race', free: 'Free Run', challenge: 'Challenge Mode' };
+  const colors = { solo: '#ff6fb7', free: '#47d4ff', challenge: '#ffcf47' };
+  document.getElementById('modeLabel').textContent = labels[mode];
+  document.getElementById('modeLabel').style.background = colors[mode];
+
+  // Show mobile controls on touch devices
+  if ('ontouchstart' in window) {
+    document.getElementById('mobileControls').classList.add('active');
+  }
+
+  // Countdown
+  if (mode !== 'free') {
+    countdownActive = true;
+    countdownTimer = 3;
+  } else {
+    countdownActive = false;
+  }
+
+  lastTime = performance.now();
+  playNeigh();
+  requestAnimationFrame(gameLoop);
+}
+
+function showResult(playerOrder) {
+  const overlay = document.getElementById('resultOverlay');
+  overlay.classList.add('active');
+
+  if (playerOrder === 1) {
+    document.getElementById('resultTitle').textContent = '🏆 You Won!';
+    document.getElementById('resultSub').textContent = '1st place — amazing galloping!';
+    playCheer();
+  } else if (playerOrder > 0) {
+    document.getElementById('resultTitle').textContent = `${ordinal(playerOrder)} Place!`;
+    document.getElementById('resultSub').textContent = playerOrder <= 2 ? 'So close! Try again!' : 'Keep practicing, little unicorn!';
+  } else {
+    document.getElementById('resultTitle').textContent = 'Race Over!';
+    document.getElementById('resultSub').textContent = 'The other unicorns finished first!';
+  }
+}
+
+function backToMenu() {
+  gameRunning = false;
+  document.getElementById('menuScreen').classList.remove('hidden');
+  document.getElementById('hud').classList.remove('active');
+  document.getElementById('resultOverlay').classList.remove('active');
+  document.getElementById('mobileControls').classList.remove('active');
+}
+
+// Prevent scroll on mobile
+document.addEventListener('touchmove', e => { if (gameRunning) e.preventDefault(); }, { passive: false });
+</script>
+</body>
+</html>
